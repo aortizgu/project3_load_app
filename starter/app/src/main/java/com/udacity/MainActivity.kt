@@ -24,14 +24,16 @@ import kotlinx.android.synthetic.main.content_main.*
 import java.util.*
 import kotlin.concurrent.scheduleAtFixedRate
 
-
 class MainActivity : AppCompatActivity() {
 
     private lateinit var notificationManager: NotificationManager
     private lateinit var pendingIntent: PendingIntent
+    private lateinit var downloadManager: DownloadManager
     private var url = ""
     private var counter = -1
+    private var currentDownload: Long = 0
     private val timerQuery = Timer()
+    private var simulatedProgress = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,7 +51,7 @@ class MainActivity : AppCompatActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
-                counter >= 0 -> {
+                currentDownload > 0 -> {
                     Toast.makeText(
                         this,
                         getString(R.string.already_downloading),
@@ -66,12 +68,14 @@ class MainActivity : AppCompatActivity() {
             NotificationManager::class.java
         ) as NotificationManager
         createChannel(CHANNEL_ID, CHANNEL_NAME)
+        downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
     }
 
     fun onRadioButtonClicked(view: View) {
         if (view is RadioButton) {
             if (view.isChecked) {
                 url = view.text as String
+                simulatedProgress = url == getText(R.string.url4).toString()
             }
         }
     }
@@ -79,20 +83,21 @@ class MainActivity : AppCompatActivity() {
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-            Log.d("BroadcastReceiver", "receive $id")
-            val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-            downloadManager.query(DownloadManager.Query()).use {
-                if (it.moveToFirst()) {
-                    notificationManager.sendNotification(
-                        getText(R.string.notification_description).toString(),
-                        applicationContext,
-                        getString(R.string.app_name),
-                        when (it.getInt(it.getColumnIndex(DownloadManager.COLUMN_STATUS))) {
-                            DownloadManager.STATUS_SUCCESSFUL -> "Success"
-                            DownloadManager.STATUS_FAILED -> "Failed"
-                            else -> "Unknown"
-                        }
-                    )
+            id?.let {
+                Log.d("BroadcastReceiver", "receive $id")
+                downloadManager.query(DownloadManager.Query().setFilterById(id)).use {
+                    if (it.moveToFirst()) {
+                        notificationManager.sendNotification(
+                            getText(R.string.notification_description).toString(),
+                            applicationContext,
+                            getString(R.string.app_name),
+                            when (it.getInt(it.getColumnIndex(DownloadManager.COLUMN_STATUS))) {
+                                DownloadManager.STATUS_SUCCESSFUL -> "Success"
+                                DownloadManager.STATUS_FAILED -> "Failed"
+                                else -> "Unknown"
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -100,14 +105,38 @@ class MainActivity : AppCompatActivity() {
 
     private fun startDownload() {
         custom_button.buttonState = ButtonState.Loading
-        // simulated progress
         counter = TOTAL_TICKS
         timerQuery.scheduleAtFixedRate(0L, PERIOD) {
-            custom_button.progress = 1f - counter.toFloat() / TOTAL_TICKS.toFloat()
-            if (--counter < 0) {
-                this.cancel()
-                custom_button.buttonState = ButtonState.Completed
-                custom_button.progress = 0f
+            if (simulatedProgress) {
+                // simulated progress
+                custom_button.progress = 1f - counter.toFloat() / TOTAL_TICKS.toFloat()
+                if (--counter < 0) {
+                    this.cancel()
+                    custom_button.buttonState = ButtonState.Completed
+                    custom_button.progress = 0f
+                    currentDownload = 0
+                }
+            } else {
+                downloadManager.query(DownloadManager.Query().setFilterById(currentDownload)).use {
+                    if (it.moveToFirst()) {
+                        val status = it.getInt(it.getColumnIndex(DownloadManager.COLUMN_STATUS))
+                        Log.d("Timer", "currentDownload $currentDownload, status $status")
+                        if (status == DownloadManager.STATUS_SUCCESSFUL || status == DownloadManager.STATUS_FAILED) {
+                            this.cancel()
+                            custom_button.buttonState = ButtonState.Completed
+                            custom_button.progress = 0f
+                            currentDownload = 0
+                        } else {
+                            val bytesDownloaded = it.getInt(it
+                                .getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+                            val bytesTotal =
+                                it.getInt(it.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+                            val progress = (bytesDownloaded / bytesTotal).toFloat()
+                            Log.d("Timer", "currentDownload $currentDownload, progress $progress")
+                            custom_button.progress = progress
+                        }
+                    }
+                }
             }
         }
     }
@@ -123,7 +152,7 @@ class MainActivity : AppCompatActivity() {
                 .setAllowedOverRoaming(true)
 
         val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-        downloadManager.enqueue(request)
+        currentDownload = downloadManager.enqueue(request)
         startDownload()
     }
 
@@ -181,7 +210,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val URL =
-            "https://github.com/udacity/nd940-c3-advanced-android-programming-project-starter/archive/master.zip"
+            "https://github.com/FFmpeg/FFmpeg/releases/download/n3.0/ffmpeg-3.0.tar.bz2"
         private const val CHANNEL_ID = "channelId"
         private const val CHANNEL_NAME = "channelName"
         private const val NOTIFICATION_ID = 0

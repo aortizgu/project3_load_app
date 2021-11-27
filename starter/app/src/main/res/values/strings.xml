@@ -19,4 +19,5 @@
 
     <string name="details_filename">Filename:</string>
     <string name="details_status">Status:</string>
+    <string name="url4">Simulated progress download</string>
 </resources>
