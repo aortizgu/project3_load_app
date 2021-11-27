@@ -17,4 +17,13 @@
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 
+    <style name="textDetailDef">
+        <item name="android:textSize">@dimen/default_text_size</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="textDetail">
+        <item name="android:textSize">@dimen/default_text_size</item>
+    </style>
+
 </resources>
