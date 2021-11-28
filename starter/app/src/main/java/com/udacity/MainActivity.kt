@@ -1,5 +1,7 @@
 package com.udacity
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.app.DownloadManager
 import android.app.NotificationChannel
@@ -11,7 +13,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -22,11 +23,10 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat.getSystemService
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
-import java.util.*
-import kotlin.concurrent.scheduleAtFixedRate
 
 class MainActivity : AppCompatActivity() {
 
+    private var animator: ObjectAnimator? = null
     private lateinit var notificationManager: NotificationManager
     private lateinit var pendingIntent: PendingIntent
     private lateinit var downloadManager: DownloadManager
@@ -65,14 +65,17 @@ class MainActivity : AppCompatActivity() {
             this,
             NotificationManager::class.java
         ) as NotificationManager
-        createChannel(CHANNEL_ID, CHANNEL_NAME)
+        createChannel()
         downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
     }
 
     fun onRadioButtonClicked(view: View) {
         if (view is RadioButton) {
             if (view.isChecked) {
-                url = view.text as String
+                url = when (view.text as String) {
+                    getString(R.string.good_url_text) -> getString(R.string.good_url)
+                    else -> getString(R.string.wrong_url)
+                }
             }
         }
     }
@@ -85,8 +88,8 @@ class MainActivity : AppCompatActivity() {
                 downloadManager.query(DownloadManager.Query().setFilterById(id)).use {
                     if (it.moveToFirst()) {
                         custom_button.buttonState = ButtonState.Completed
-                        custom_button.progress = 0f
                         currentDownload = 0
+                        animator?.cancel()
                         notificationManager.sendNotification(
                             getText(R.string.notification_description).toString(),
                             applicationContext,
@@ -105,15 +108,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun startDownload() {
         custom_button.buttonState = ButtonState.Loading
-        val animator = ObjectAnimator.ofFloat(custom_button, "progress", 1f)
-        animator.duration = LOADING_MILLISECONDS
-        animator.start()
+        animator = ObjectAnimator.ofFloat(custom_button, "progress", 0f, 1f)
+        animator?.duration = LOADING_MILLISECONDS
+        animator?.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator?) {
+                custom_button.progress = 0f
+            }
+        })
+        animator?.start()
     }
 
     private fun download() {
         custom_button.buttonState = ButtonState.Clicked
         val request =
-            DownloadManager.Request(Uri.parse(URL))
+            DownloadManager.Request(Uri.parse(url))
                 .setTitle(getString(R.string.app_name))
                 .setDescription(getString(R.string.app_description))
                 .setRequiresCharging(false)
@@ -125,25 +133,23 @@ class MainActivity : AppCompatActivity() {
         startDownload()
     }
 
-    private fun createChannel(channelId: String, channelName: String) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = NotificationChannel(
-                channelId,
-                channelName,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                setShowBadge(false)
-            }
-
-            notificationChannel.enableLights(true)
-            notificationChannel.lightColor = Color.RED
-            notificationChannel.enableVibration(true)
-
-            val notificationManager = getSystemService(
-                NotificationManager::class.java
-            )
-            notificationManager.createNotificationChannel(notificationChannel)
+    private fun createChannel() {
+        val notificationChannel = NotificationChannel(
+            CHANNEL_ID,
+            CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            setShowBadge(false)
         }
+
+        notificationChannel.enableLights(true)
+        notificationChannel.lightColor = Color.RED
+        notificationChannel.enableVibration(true)
+
+        val notificationManager = getSystemService(
+            NotificationManager::class.java
+        )
+        notificationManager.createNotificationChannel(notificationChannel)
     }
 
     private fun NotificationManager.sendNotification(
@@ -179,8 +185,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val URL =
-            "https://github.com/FFmpeg/FFmpeg/releases/download/n3.0/ffmpeg-3.0.tar.bz2"
         private const val CHANNEL_ID = "channelId"
         private const val CHANNEL_NAME = "channelName"
         private const val NOTIFICATION_ID = 0

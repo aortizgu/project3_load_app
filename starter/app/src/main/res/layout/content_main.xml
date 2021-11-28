@@ -38,7 +38,7 @@
             android:layout_height="wrap_content"
             android:minHeight="48dp"
             android:onClick="onRadioButtonClicked"
-            android:text="@string/url1" />
+            android:text="@string/good_url_text" />
 
         <RadioButton
             android:id="@+id/radioButton2"
@@ -46,15 +46,8 @@
             android:layout_height="wrap_content"
             android:minHeight="48dp"
             android:onClick="onRadioButtonClicked"
-            android:text="@string/url2" />
+            android:text="@string/wrong_url_text" />
 
-        <RadioButton
-            android:id="@+id/radioButton3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:onClick="onRadioButtonClicked"
-            android:text="@string/url3" />
     </RadioGroup>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

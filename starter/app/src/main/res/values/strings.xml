@@ -7,9 +7,10 @@
     <string name="notification_description">The Project 3 repository is downloaded</string>
     <string name="notification_button">See changes</string>
 
-    <string name="url1">https://github.com/bumptech/glide</string>
-    <string name="url2">https://github.com/udacity/nd940-c3-advanced-android-programming-project-starter</string>
-    <string name="url3">https://github.com/square/retrofit</string>
+    <string name="good_url">https://github.com/FFmpeg/FFmpeg/releases/download/n3.0/ffmpeg-3.0.tar.bz2</string>
+    <string name="wrong_url">https://github.com/FFmpeg/FFmpeg/releases/download/n3.0/ffmpeg-XXXXX.tar.bz2</string>
+    <string name="good_url_text">Good URL (https://github.com/FFmpeg/FFmpeg/releases/download/n3.0/ffmpeg-3.0.tar.bz2)</string>
+    <string name="wrong_url_text">Wrong URL (https://github.com/FFmpeg/FFmpeg/releases/download/n3.0/ffmpeg-XXXXX.tar.bz2)</string>
 
     <string name="button_name">Click me</string>
     <string name="button_loading">We are loading </string>
