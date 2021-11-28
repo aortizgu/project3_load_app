@@ -87,9 +87,10 @@ class MainActivity : AppCompatActivity() {
                 Log.d("BroadcastReceiver", "receive $id")
                 downloadManager.query(DownloadManager.Query().setFilterById(id)).use {
                     if (it.moveToFirst()) {
-                        custom_button.buttonState = ButtonState.Completed
-                        currentDownload = 0
                         animator?.cancel()
+                        custom_button.buttonState = ButtonState.Completed
+                        custom_button.progress = 0f
+                        currentDownload = 0
                         notificationManager.sendNotification(
                             getText(R.string.notification_description).toString(),
                             applicationContext,
@@ -110,11 +111,6 @@ class MainActivity : AppCompatActivity() {
         custom_button.buttonState = ButtonState.Loading
         animator = ObjectAnimator.ofFloat(custom_button, "progress", 0f, 1f)
         animator?.duration = LOADING_MILLISECONDS
-        animator?.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: Animator?) {
-                custom_button.progress = 0f
-            }
-        })
         animator?.start()
     }
 
