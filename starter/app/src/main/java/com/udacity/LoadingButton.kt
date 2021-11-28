@@ -2,18 +2,26 @@ package com.udacity
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.util.AttributeSet
-import android.util.Log
 import android.view.View
 import kotlin.properties.Delegates
 
 class LoadingButton @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
-    private val circleRadius = resources.getDimension(R.dimen.circleRadius)
-    private val primaryColor = resources.getColor(R.color.colorPrimary)
+    private val primaryColor: Int
+    private val secondaryColor: Int
+    private val textColor: Int
+    private val circleColor: Int
+    private val circleRadius: Float
+
+    private val textPaint: Paint
+    private val rectanglePaint: Paint
+    private val circlePaint: Paint
+
     private var widthSize = 0
     private var heightSize = 0
 
@@ -29,26 +37,6 @@ class LoadingButton @JvmOverloads constructor(
         )
     }
 
-    private val textPaint = Paint().apply {
-        isAntiAlias = true
-        color = resources.getColor(R.color.white)
-        textSize = resources.getDimension(R.dimen.default_text_size)
-        style = Paint.Style.FILL
-        textAlign = Paint.Align.CENTER
-    }
-
-    private val rectanglePaint = Paint().apply {
-        isAntiAlias = true
-        color = resources.getColor(R.color.colorPrimaryDark)
-        style = Paint.Style.FILL
-    }
-
-    private val circlePaint = Paint().apply {
-        isAntiAlias = true
-        color = resources.getColor(R.color.colorAccent)
-        style = Paint.Style.FILL
-    }
-
     var buttonState: ButtonState by Delegates.observable<ButtonState>(ButtonState.Completed) { _, _, new ->
         setTextClipToShow(
             when (new) {
@@ -62,11 +50,51 @@ class LoadingButton @JvmOverloads constructor(
         invalidate()
     }
 
-    var progress: Float by Delegates.observable(0f) { _, _, new ->
+    var progress: Float by Delegates.observable(0f) { _, _, _ ->
         invalidate()
     }
 
     init {
+        context.theme.obtainStyledAttributes(
+            attrs,
+            R.styleable.LoadingButton,
+            0, 0).apply {
+
+            try {
+                primaryColor = getColor(R.styleable.LoadingButton_buttonColor,
+                    Color.RED)
+                secondaryColor = getColor(R.styleable.LoadingButton_progressColor,
+                    Color.BLUE)
+                textColor = getColor(R.styleable.LoadingButton_textColor,
+                    Color.WHITE)
+                circleColor = getColor(R.styleable.LoadingButton_circleColor,
+                    Color.YELLOW)
+                circleRadius = getDimension(R.styleable.LoadingButton_circleProgressRadius,
+                    resources.getDimension(R.dimen.circleRadius))
+            } finally {
+            }
+        }
+
+        rectanglePaint = Paint().apply {
+            isAntiAlias = true
+            color = secondaryColor
+            style = Paint.Style.FILL
+        }
+
+        textPaint = Paint().apply {
+            isAntiAlias = true
+            color = textColor
+            textSize = resources.getDimension(R.dimen.default_text_size)
+            style = Paint.Style.FILL
+            textAlign = Paint.Align.CENTER
+        }
+
+        circlePaint = Paint().apply {
+            isAntiAlias = true
+            color = circleColor
+            style = Paint.Style.FILL
+        }
+
         setTextClipToShow(context.getString(R.string.button_name))
     }
 

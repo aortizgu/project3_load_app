@@ -1,5 +1,6 @@
 package com.udacity
 
+import android.animation.ObjectAnimator
 import android.app.DownloadManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -30,10 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pendingIntent: PendingIntent
     private lateinit var downloadManager: DownloadManager
     private var url = ""
-    private var counter = -1
     private var currentDownload: Long = 0
-    private val timerQuery = Timer()
-    private var simulatedProgress = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,7 +73,6 @@ class MainActivity : AppCompatActivity() {
         if (view is RadioButton) {
             if (view.isChecked) {
                 url = view.text as String
-                simulatedProgress = url == getText(R.string.url4).toString()
             }
         }
     }
@@ -87,6 +84,9 @@ class MainActivity : AppCompatActivity() {
                 Log.d("BroadcastReceiver", "receive $id")
                 downloadManager.query(DownloadManager.Query().setFilterById(id)).use {
                     if (it.moveToFirst()) {
+                        custom_button.buttonState = ButtonState.Completed
+                        custom_button.progress = 0f
+                        currentDownload = 0
                         notificationManager.sendNotification(
                             getText(R.string.notification_description).toString(),
                             applicationContext,
@@ -105,40 +105,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun startDownload() {
         custom_button.buttonState = ButtonState.Loading
-        counter = TOTAL_TICKS
-        timerQuery.scheduleAtFixedRate(0L, PERIOD) {
-            if (simulatedProgress) {
-                // simulated progress
-                custom_button.progress = 1f - counter.toFloat() / TOTAL_TICKS.toFloat()
-                if (--counter < 0) {
-                    this.cancel()
-                    custom_button.buttonState = ButtonState.Completed
-                    custom_button.progress = 0f
-                    currentDownload = 0
-                }
-            } else {
-                downloadManager.query(DownloadManager.Query().setFilterById(currentDownload)).use {
-                    if (it.moveToFirst()) {
-                        val status = it.getInt(it.getColumnIndex(DownloadManager.COLUMN_STATUS))
-                        Log.d("Timer", "currentDownload $currentDownload, status $status")
-                        if (status == DownloadManager.STATUS_SUCCESSFUL || status == DownloadManager.STATUS_FAILED) {
-                            this.cancel()
-                            custom_button.buttonState = ButtonState.Completed
-                            custom_button.progress = 0f
-                            currentDownload = 0
-                        } else {
-                            val bytesDownloaded = it.getInt(it
-                                .getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
-                            val bytesTotal =
-                                it.getInt(it.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
-                            val progress = (bytesDownloaded / bytesTotal).toFloat()
-                            Log.d("Timer", "currentDownload $currentDownload, progress $progress")
-                            custom_button.progress = progress
-                        }
-                    }
-                }
-            }
-        }
+        val animator = ObjectAnimator.ofFloat(custom_button, "progress", 1f)
+        animator.duration = LOADING_MILLISECONDS
+        animator.start()
     }
 
     private fun download() {
@@ -198,12 +167,13 @@ class MainActivity : AppCompatActivity() {
             applicationContext,
             CHANNEL_ID
         )
-            .setSmallIcon(R.drawable.ic_assistant_black_24dp)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(applicationContext.getString(R.string.notification_title))
             .setContentText(messageBody)
-            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .addAction(R.drawable.ic_launcher_foreground, getString(R.string.check),
+                pendingIntent)
 
         notify(NOTIFICATION_ID, builder.build())
     }
@@ -214,11 +184,7 @@ class MainActivity : AppCompatActivity() {
         private const val CHANNEL_ID = "channelId"
         private const val CHANNEL_NAME = "channelName"
         private const val NOTIFICATION_ID = 0
-        private const val UPDATES_BY_SECOND = 25
-        private const val HZ: Float = 1f / UPDATES_BY_SECOND.toFloat()
-        private const val PERIOD = (HZ * 1000).toLong()
-        private const val LOADING_SECONDS = 1
-        private const val TOTAL_TICKS = LOADING_SECONDS * UPDATES_BY_SECOND
+        private const val LOADING_MILLISECONDS = 1000L
     }
 
 }

@@ -54,8 +54,6 @@ Examples here
 ```
 ## Project Instructions
 The project will download the same and a valid url in all cases.
-The progress(custom button animation) for the three first checkbuttons will be calculated polling to the download manager and calculating progress with the downloaded bytes and the total size.(not very smooth)
-For the last checkbutton, the progress will be simulated to show the animation smoothly.
 
 ## Built With
 
